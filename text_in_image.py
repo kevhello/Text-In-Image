@@ -12,6 +12,7 @@ and can then extract text embedded inside the image.
 from PIL import Image
 import binascii
 import sys
+import argparse
 
 
 def check_fit(image, text_file):
@@ -160,6 +161,9 @@ def embed_text(img, text_file):
     # Extract contents of text file
     text_file.seek(0)
     contents = text_file.read()
+
+    # Strips newlines at the ends of text so we don't get "odd-string length" error
+    contents = contents.strip()
 
     # Get the text length
     text_length = len(contents)
@@ -331,24 +335,35 @@ def extract_text(img):
 
 
 def main():
-    text_file = open("copy.py", mode='rt', encoding='utf-8')
-    text_length = len(text_file.read())
 
-    with Image.open("cat.jpg") as img:
+    parser = argparse.ArgumentParser(description='Hides text in an image, and extract text from image')
+    parser.add_argument('--it', '--input_text', help='Path to input text')
+    parser.add_argument('--ot', '--output_text', help='Path to output extracted text')
+    parser.add_argument('--ip', '--input_pic', help='Path to input picture')
+    parser.add_argument('--op', '--output_pic', help='Path to output picture')
+    args = parser.parse_args()
 
-        if not check_fit(img, text_file):
-            print("Error: Supplied data will not fit in the image")
-            exit(1)
-            
-        embed_text_length(img, text_length)
-        embed_text(img, text_file)
-        img.save('embed.png', format='png', compress_level=0)
+    # Must supply input text file, the input picture to which to embed the text into
+    # AND the path to the output picture
+    if args.it is not None:
+        text_file = open(args.it, mode='rt', encoding='utf-8')
+        text_length = len(text_file.read())
 
-    with Image.open('embed.png') as embed_img:
-        tl = extract_text_length(embed_img)
-        print("\nExtracted text LENGTH is " + str(tl))
-        extract_text(embed_img)
+        with Image.open(args.ip) as img:
+            if not check_fit(img, text_file):
+                print("Error: Supplied data will not fit in the image")
+                exit(1)
 
-    text_file.close()
+            embed_text_length(img, text_length)
+            embed_text(img, text_file)
+            img.save(args.op, format='png', compress_level=0)
+        text_file.close()
+
+    if args.op is not None:
+        with Image.open(args.op) as embed_img:
+            text_length = extract_text_length(embed_img)
+            print("\nExtracted text LENGTH is " + str(text_length))
+            extract_text(embed_img)
+
 if __name__ == "__main__":
     main()
