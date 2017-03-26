@@ -96,7 +96,6 @@ def embed_text_length(image_obj, text_length):
         edited_pixel = (int(red), int(green), int(blue))
         image_obj.putpixel((x, img_height-1), edited_pixel)
 
-    image_obj.save('embed.png', format='png', compress_level=0)
     return True
     
 
@@ -160,7 +159,7 @@ def embed_text(img, text_file):
 
     # Extract contents of text file
     text_file.seek(0)
-    contents = text_file.read()
+    contents = text_file.read().strip()
 
     # Strips newlines at the ends of text so we don't get "odd-string length" error
     contents = contents.strip()
@@ -300,8 +299,6 @@ def extract_text(img):
             temp_store = temp_store + str(bit_extracted)
 
             if count == 8:
-                #print('')
-                #print(temp_store, end='')
                 contents = contents + temp_store
                 temp_store = ''
                 count = 1
@@ -318,8 +315,6 @@ def extract_text(img):
                 temp_store = temp_store + str(bit_extracted)
 
                 if count == 8:
-                    #print('')
-                    #print(temp_store, end='')
                     contents = contents + temp_store
                     temp_store = ''
                     count = 1
@@ -341,7 +336,7 @@ def main():
     args = parser.parse_args()
 
     # Embed Text Operation ----------------------------------------------------------
-    # Must supply input text file, the input picture to which to embed the text into
+    # Must supply input text file, the input picture to which to embed the text into,
     # AND the path to the output picture
     if args.it is not None:
         text_file = open(args.it, mode='rt', encoding='utf-8')
@@ -357,7 +352,8 @@ def main():
             img.save(args.op, format='png', compress_level=0)
         text_file.close()
 
-    # Text Extraction operation
+    # Text Extraction operation -------------------------------------------------------
+    # Must supply path to output picture
     if args.op is not None:
         with Image.open(args.op) as embed_img:
             text_length = extract_text_length(embed_img)
