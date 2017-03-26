@@ -217,7 +217,6 @@ def embed_text(img, text_file):
             # If done embedding the current selected character, then move on to the next character
             if count_next == 8:
                 count_next = 1
-                #print('')
                 char_pos = char_pos - 1
                 current_char = ord(contents[char_pos])
             else:
@@ -271,7 +270,6 @@ def embed_text(img, text_file):
 
             edited_pixel = (int(red), int(green), int(blue))
             img.putpixel((x, y), edited_pixel)
-    #img.save('embed.png', format='png', compress_level=0)
     print("\nText Embed Completed")
 
 
@@ -338,11 +336,11 @@ def main():
 
     parser = argparse.ArgumentParser(description='Hides text in an image, and extract text from image')
     parser.add_argument('--it', '--input_text', help='Path to input text')
-    parser.add_argument('--ot', '--output_text', help='Path to output extracted text')
     parser.add_argument('--ip', '--input_pic', help='Path to input picture')
     parser.add_argument('--op', '--output_pic', help='Path to output picture')
     args = parser.parse_args()
 
+    # Embed Text Operation ----------------------------------------------------------
     # Must supply input text file, the input picture to which to embed the text into
     # AND the path to the output picture
     if args.it is not None:
@@ -359,6 +357,7 @@ def main():
             img.save(args.op, format='png', compress_level=0)
         text_file.close()
 
+    # Text Extraction operation
     if args.op is not None:
         with Image.open(args.op) as embed_img:
             text_length = extract_text_length(embed_img)
