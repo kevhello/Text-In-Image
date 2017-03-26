@@ -16,6 +16,17 @@ Requires Python 3
 
 Requires Python's Pillow - https://python-pillow.org/
 
+## Contents
+text_in_image.py is the source code for this project and its content will be embedded inside the images.
+
+cat1.jpg is the original non-modified image
+
+cat2.jpg is the original non-modified image
+
+embed1.png is the cat1.jpg but with the embedded source code text
+
+embed2.png is the cat2.jpg but with the embedded source code text
+
 ## How to Use
 
 ### Summary of commandline arguments:
