@@ -58,44 +58,31 @@ def embed_text_length(image_obj, text_length):
     if text_length == 0:
         print("Text length is 0, nothing is to be embedded")  
         return False
-    
-    img_width, img_height = image_obj.size
 
-    for x in range(img_width-1, img_width-12, -1):
+    img_width, img_height = image_obj.size
+    text_length = text_length * 8
+    for x in range(img_width - 11, img_width, 1):
         pixel = image_obj.getpixel((x, img_height-1))
         red = pixel[0]
         green = pixel[1]
         blue = pixel[2]
 
-        # Make the rest of the pixel's LSB set to 0 after the text length has been embedded
-        if text_length == 0:
-            red = embed_bit(red, 0)
-            green = embed_bit(green, 0)
-            blue = embed_bit(blue, 0)
+        index = 0
+        for color in pixel:
+            extracted_bit = text_length & 1
+            text_length >>= 1
+            if index == 0:
+                green = embed_bit(color, extracted_bit)
+            if index == 1:
+                blue = embed_bit(color, extracted_bit)
+            if index == 2:
+                red = embed_bit(color, extracted_bit)
 
-            edited_pixel = (int(red), int(green), int(blue))
-            image_obj.putpixel((x, img_height-1), edited_pixel)
-            continue
-
-        # Extract LSB of text length integer
-        bit_extracted = text_length & 1
-        # Binary shift right the text length by one to extract the next LSB
-        text_length >>= 1
-        # Embed the extracted bit into the RGB values
-        red = embed_bit(red, bit_extracted)
-
-        bit_extracted = text_length & 1
-        text_length >>= 1
-        green = embed_bit(green, bit_extracted)
-
-        bit_extracted = text_length & 1
-        text_length >>= 1
-        blue = embed_bit(blue, bit_extracted)
+            index = index + 1
 
         # Place the edited pixel back into the image
-        edited_pixel = (int(red), int(green), int(blue))
+        edited_pixel = (int(red), int(blue), int(green))
         image_obj.putpixel((x, img_height-1), edited_pixel)
-
     return True
     
 
@@ -124,23 +111,22 @@ def extract_text_length(image_obj):
     Returns:
         text_length: The text length of the supplied data
     """        
+    print("\nExtracting text length")
     img_width, img_height = image_obj.size
-    text_length = 0
 
-    # Count will determine how much to shift the mask; allows the extracted bit to be placed in its appropriate location
-    # after each iteration.
-    count = 0
-    
+    bit_string = ''
     for x in range(img_width-1, img_width-12, -1):
         pixel = image_obj.getpixel((x, img_height-1))
 
         for color in pixel:
             bit_extracted = color & 1
-            bit_extracted <<= count
-            count = count + 1
-            if bit_extracted != 0:
-                text_length = text_length | bit_extracted
+            print(bit_extracted, end='')
+            bit_string += str(bit_extracted)
 
+    print('')
+    bit_string = bit_string[:33]
+    print(bit_string)
+    text_length = int(bit_string, 2)
     return text_length
 
 
@@ -272,57 +258,67 @@ def embed_text(img, text_file):
     print("\nText Embed Completed")
 
 
-def extract_text(img):
+def extract_text(img, num_bits):
     '''
     Extracts the text embedded inside the given image. This function does not
     extract the text length embedded.
     
     Args:
         img: The Python PIL image object
-        
+        num_bits: The number of bits to be extracted
     Returns:
         contents: The string that was embedded inside the image
     '''
-
     img_width, img_height = img.size
-    count = 1
+    count = 1  # Keeps track how many bits till 8 is reached (for one byte)
     temp_store = ''
     # Stores extracted text
     contents = ''
     print("Extracting...")
+    print(str(num_bits))
     # Extract the text from the last line of pixels w/o extracting the text length
     for x in range(img_width-12, -1, -1):
+        if num_bits == 0:
+            break
         pixel = img.getpixel((x, img_height-1))
 
         for color in pixel:
             bit_extracted = color & 1
             temp_store = temp_store + str(bit_extracted)
-
+            num_bits = num_bits - 1
             if count == 8:
                 contents = contents + temp_store
                 temp_store = ''
                 count = 1
             else:
                 count = count + 1
+            if num_bits == 0:
+                break
 
     # Extract the text from the remaining pixels
     for y in range(img_height-2, -1, -1):
         for x in range(img_width-1, -1, -1):
             pixel = img.getpixel((x, y))
+            if num_bits == 0:
+                break
 
             for color in pixel:
                 bit_extracted = color & 1
                 temp_store = temp_store + str(bit_extracted)
-
+                num_bits = num_bits - 1
                 if count == 8:
                     contents = contents + temp_store
                     temp_store = ''
                     count = 1
                 else:
                     count = count + 1
-    contents = contents[::-1]  # Reverse for correct string order
+                if num_bits == 0:
+                    break
+
+    contents = contents[::-1]
     n = int(contents, 2)
     contents = binascii.unhexlify('%x' % n).decode('utf-8')
+
     print(contents)
     return contents
 
@@ -348,17 +344,18 @@ def main():
                 exit(1)
 
             embed_text_length(img, text_length)
+            print(extract_text_length(img))
             embed_text(img, text_file)
             img.save(args.op, format='png', compress_level=0)
         text_file.close()
 
     # Text Extraction operation -------------------------------------------------------
     # Must supply path to output picture
-    if args.op is not None:
+    if args.op is not None and args.it is None and args.ip is None:
         with Image.open(args.op) as embed_img:
             text_length = extract_text_length(embed_img)
             print("\nExtracted text LENGTH is " + str(text_length))
-            extract_text(embed_img)
+            extract_text(embed_img, text_length)
 
 if __name__ == "__main__":
     main()
